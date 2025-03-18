@@ -1,4 +1,4 @@
-package model;
+package com.imageprocessor.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
