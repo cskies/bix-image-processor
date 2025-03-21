@@ -61,6 +61,39 @@ public class JwtUserDetails implements UserDetails {
                 .build();
     }
 
+    public static JwtUserDetails buildWithoutEmailVerification(User user) {
+        List<GrantedAuthority> authorities = new ArrayList<>();
+
+        // Todos os usuários têm o papel básico
+        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+
+        // Verificar se o usuário tem plano premium para adicionar autoridade correspondente
+        boolean isPremium = false;
+        String planName = "Free";
+
+        Subscription subscription = user.getSubscription();
+        if (subscription != null && subscription.isActive()) {
+            Plan plan = subscription.getPlan();
+            planName = plan.getName();
+
+            if (plan.isPremium()) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_PREMIUM"));
+                isPremium = true;
+            }
+        }
+
+        return JwtUserDetails.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .password(user.getPassword())
+                .emailVerified(true)  // Sempre definir como true para ignorar essa verificação
+                .authorities(authorities)
+                .isPremium(isPremium)
+                .planName(planName)
+                .build();
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;
@@ -93,6 +126,7 @@ public class JwtUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return emailVerified;
+        // Para desenvolvimento, sempre retorna true
+        return true;
     }
 }

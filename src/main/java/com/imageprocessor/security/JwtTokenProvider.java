@@ -1,18 +1,13 @@
 package com.imageprocessor.security;
 
-import com.imageprocessor.config.JwtConfig;
 import com.imageprocessor.model.Plan;
 import com.imageprocessor.model.Subscription;
 import com.imageprocessor.model.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -22,18 +17,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class JwtTokenProvider {
 
-    private final JwtConfig jwtConfig;
-    private final UserDetailsService userDetailsService;
+    @Value("${app.jwt.secret:chave_secreta_muito_segura_que_deve_ser_grande_o_suficiente_para_hmacsha256}")
+    private String jwtSecret;
+
+    @Value("${app.jwt.expiration-ms:86400000}")
+    private long jwtExpirationMs;
+
+    @Value("${app.jwt.issuer:image-processor-app}")
+    private String jwtIssuer;
 
     private SecretKey secretKey;
 
     @PostConstruct
     public void init() {
-        secretKey = Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8));
+        secretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(User user) {
@@ -58,8 +58,8 @@ public class JwtTokenProvider {
                 .setClaims(claims)
                 .setSubject(user.getUsername())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + jwtConfig.getExpirationMs()))
-                .setIssuer(jwtConfig.getIssuer())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .setIssuer(jwtIssuer)
                 .signWith(secretKey)
                 .compact();
     }
@@ -84,12 +84,6 @@ public class JwtTokenProvider {
             log.error("JWT token validation failed: {}", e.getMessage());
             return false;
         }
-    }
-
-    public Authentication getAuthentication(String token) {
-        String username = getUsernameFromToken(token);
-        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 
     public Claims getClaims(String token) {

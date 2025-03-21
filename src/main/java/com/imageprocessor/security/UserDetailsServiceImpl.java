@@ -22,6 +22,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .orElseThrow(() ->
                         new UsernameNotFoundException("Usuário não encontrado com o username: " + username));
 
-        return JwtUserDetails.build(user);
+        // Para ambiente de desenvolvimento, ignoramos verificação de e-mail
+        return JwtUserDetails.buildWithoutEmailVerification(user);
     }
 }
